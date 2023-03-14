@@ -6,7 +6,7 @@ def main():
     board = Board(mines)
 
     while True:
-        # system("cls")
+        system("cls")
         print(f"{colorama.Fore.YELLOW}Minesweeper{colorama.Fore.RESET}, by {colorama.Fore.CYAN}Oliver M {colorama.Fore.GREEN}:){colorama.Fore.RESET}.")
         board.display()
         print()
