@@ -18,7 +18,7 @@ def display_board(board, player_board):
     for row in board:
         print(f"{i} {row}")
         i += 1
-    print("   A  B  C  D  E  F  G  H")
+    print("    A    B    C    D    E    F    G    H")
     print()
     
     i = 1
@@ -38,8 +38,7 @@ def setup_board(mines: int):
     for i in range(mines):
         while True:
             coord = random.randint(0, 63) 
-            row = coord // 8
-            index = coord % 8
+            row, index = get_row_index(coord)
             if not board[row][index] == 1:
                 # print(f"Placed mine at row {row}, coord {coord}")
                 board[row][index] = 1
@@ -51,13 +50,12 @@ def setup_board(mines: int):
 
     return board, player_board, mine_coords
 
-def reveal_coord(player_board: list, coord):
-    row = coord // 8
-    index = coord % 8
+def reveal_coord(player_board: list, coord: int):
+    row, index = get_row_index(coord)
     player_board[row][index] = "O"
     return player_board
 
-def hande_input(mine_coords: list, player_input: str): 
+def input_to_coord(mine_coords: list, player_input: str): 
     coord = int(player_input[1]) * 8 - COORDS[player_input[0]]
     if coord in mine_coords:
         print(f"{player_input} is a mine. Game over!")
@@ -127,14 +125,16 @@ def check_coord(mine_coords: list, player_board: list, coord: int, reveal_coords
     
     return player_board
 
+def get_row_index(coord: int):
+    return coord // 8, coord % 8
+
 board, player_board, mine_coords = setup_board(10)
 print(mine_coords)
 
 while True:
     # system("cls")
     for coord in range(64):
-        row = coord // 8
-        index = coord % 8
+        row, index = get_row_index(coord)
         nearby_mines = check_nearby_mines(mine_coords, coord)
 
         if nearby_mines == "MINE":
@@ -152,6 +152,6 @@ while True:
         else:
             break
     
-    player_board = check_coord(mine_coords, player_board, hande_input(mine_coords, player_choice))
+    player_board = check_coord(mine_coords, player_board, input_to_coord(mine_coords, player_choice))
     
     
