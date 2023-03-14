@@ -111,31 +111,76 @@ class Coord:
 
         return nearby_mines
 
-    def check(board: Board, coord: int, reveal_coords: list=[], recursing: bool=False):
+    def find_adjacent_zeroes(board: Board, coord: int, found_coords: list=[]):
+        to_search = []
+        old_found = found_coords.copy()
         row, index = Coord.get_row_index(coord)
-        print(row, index)
+        match index:
+            case 0:
+                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
+                diagonal_coords = [coord - 8 + 1, coord + 8 + 1]
+            case 7:
+                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
+                diagonal_coords = [coord - 8 - 1, coord + 8 - 1]
+            case other:
+                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
+                diagonal_coords = [coord - 8 - 1, coord - 8 + 1, coord + 8 - 1, coord + 8 + 1]
+        
+        for ac in adjacent_coords:
+            row, index = Coord.get_row_index(ac)
+            if board.board[row][index] == "0":
+                if not ac in found_coords:
+                    to_search.append(ac)
+                    found_coords.append(ac)
+        
+        if len(to_search) == 0:
+            return found_coords
+        else:
+            print(f"To search: {to_search}")
+            for tc in to_search:
+                found_coords = Coord.find_adjacent_zeroes(board, tc, found_coords)
+                sleep(0.1)
+    
+    def check(board: Board, coord: int, reveal_coords: list=[], recursing: bool=False, to_recurse: list=[]):
+        print(reveal_coords)
+        row, index = Coord.get_row_index(coord)
+        print(f"Checking{' recursing' if recursing else ''} {coord} at row {row}, index {index}.")
         if coord in board.mine_coords:
             return "MINE"
 
-        adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
-        diagonal_coords = [coord - 8 - 1, coord - 8 + 1, coord + 8 - 1, coord + 8 + 1]
+        match index:
+            case 0:
+                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
+                diagonal_coords = [coord - 8 + 1, coord + 8 + 1]
+            case 7:
+                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
+                diagonal_coords = [coord - 8 - 1, coord + 8 - 1]
+            case other:
+                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
+                diagonal_coords = [coord - 8 - 1, coord - 8 + 1, coord + 8 - 1, coord + 8 + 1]
         
         if not recursing:
             reveal_coords.append(coord)
+            adjacent_zeroes: list = Coord.find_adjacent_zeroes(coord)
+            for adjacent in adjacent_zeroes:
+                reveal_coords.append(adjacent)
             
-        if board.board[row][index] == 0:
-            map(reveal_coords.append, diagonal_coords)
-            map(reveal_coords.append, adjacent_coords)
+        if board.board[row][index] == "0":
+            print(f"Coord {coord} at row {row}, index {index} is zero.")
             if recursing:
                 reveal_coords.append(coord)
+            
+        else:
+            print(f"Coord {coord} at row {row}, index {index} is not zero, it's {board.board[row][index]}.")
         
-        recursing_zeroed_coord = board.board[row][index] == 0 and recursing
+        recursing_zeroed_coord = board.board[row][index] == "0" and recursing
         
         if recursing_zeroed_coord or not recursing:
             for acoord in adjacent_coords:
-                print(f"Recursing {acoord}.")
                 if not acoord in reveal_coords:
-                    Coord.check(board, acoord, reveal_coords, recursing=True)
+                    to_recurse.append(acoord)
+                
+                Coord.check(board, acoord, reveal_coords, recursing=True)
                 sleep(0.1)
         
             for rcoord in reveal_coords:
@@ -144,3 +189,9 @@ class Coord:
         return board
     
     def get_row_index(coord: int): return coord // 8, coord % 8
+    
+def main():
+    system("python minesweeper.py")
+    
+if __name__ == "__main__":
+    main()
