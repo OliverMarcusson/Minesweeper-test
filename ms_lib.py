@@ -20,29 +20,33 @@ class Board:
     "POUND": "#"
     }
     
-    def __init__(self, mines: int) -> None:
+    def __init__(self, row_length: int, mines: int) -> None:
         self.board = []
         self.player_board = []
         self.mine_coords = []
         self.mines = mines
+        self.row_length = 10
+        self.Coord = Coord(self)
+        self.total_coords = self.row_length ** 2
         
-        for i in range(8):
-            self.board.append([0, 0, 0, 0, 0, 0, 0, 0])
-            self.player_board.append([Board.TYPES["POUND"], Board.TYPES["POUND"], Board.TYPES["POUND"], Board.TYPES["POUND"], Board.TYPES["POUND"], Board.TYPES["POUND"], Board.TYPES["POUND"], Board.TYPES["POUND"]])
+        for i in range(self.row_length):
+            self.board.append([0 for _ in range(self.row_length)])
+            self.player_board.append([Board.TYPES["POUND"] for _ in range(self.row_length)])
         
         for i in range(mines):
             while True:
-                coord = random.randint(0, 63) 
-                row, index = Coord.get_row_index(coord)
+                coord = random.randint(0, self.total_coords - 1) 
+                row, index = self.Coord.get_row_index(coord)
                 if not self.board[row][index] == 1:
                     # print(f"Placed mine at row {row}, coord {coord}")
                     self.board[row][index] = 1
                     self.mine_coords.append(coord)
                     break
 
-        for coord in range(64):
-            row, index = Coord.get_row_index(coord)
-            nearby_mines = Coord.nearby_mines(self.mine_coords, coord)
+        for coord in range(self.total_coords):
+            row, index = self.Coord.get_row_index(coord)
+            print(f"row: {row}, index: {index}, coord: {coord}")
+            nearby_mines = self.Coord.nearby_mines(self.mine_coords, coord)
 
             match nearby_mines:
                 case "MINE":
@@ -66,7 +70,8 @@ class Board:
                 case 8:
                     self.board[row][index] = Board.TYPES["EIGHT"]
                 case _:
-                    raise("Error: Invalid nearby_mines value!")
+                    print(nearby_mines)
+                    raise BaseException("Error: Invalid nearby_mines value!")
     
     def check_win(self):
         win_board = copy.deepcopy(self.player_board)
@@ -88,7 +93,7 @@ class Board:
             exit()
 
     def mark(self, coord: int):
-        row, index = Coord.get_row_index(coord)
+        row, index = self.Coord.get_row_index(coord)
         if self.player_board[row][index] == Board.TYPES["POUND"]:
             self.player_board[row][index] = Board.TYPES["MARKED"]
         elif self.player_board[row][index] == Board.TYPES["MARKED"]:
@@ -106,7 +111,7 @@ class Board:
             print(f"That square contains a {colorama.Fore.RED}mine{colorama.Fore.RESET}. Game over!")
             exit()
         
-        row, index = Coord.get_row_index(coord)
+        row, index = self.Coord.get_row_index(coord)
         self.player_board[row][index] = self.board[row][index]
         
         if not skip_check:
@@ -136,29 +141,27 @@ class Board:
         print()
 
 class Coord:
-    COORDS = {
-    "A": 8,
-    "B": 7,
-    "C": 6,
-    "D": 5,
-    "E": 4,
-    "F": 3,
-    "G": 2,
-    "H": 1,
-    }
+    CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    def __init__(self, board: Board) -> None:
+        self.COORDS = {} 
+        self.row_length = board.row_length
+        counter = board.row_length
+        for i in range(0, counter):
+            self.COORDS[self.CHARS[i]] = counter
+            counter -= 1
 
-    def convert_input(board: Board, player_input: str): 
-        coord = int(player_input[1]) * 8 - Coord.COORDS[player_input[0].upper()]
+    def convert_input(self, board: Board, player_input: str): 
+        coord = int(player_input[1]) * self.row_length - self.COORDS[player_input[0].upper()]
         return coord
 
-    def nearby_mines(mine_coords: list, coord: int):
-        if coord < 0 or coord > 63:
+    def nearby_mines(self, mine_coords: list, coord: int):
+        if coord < 0 or coord > (self.row_length ** 2) - 1:
             return "OUT_OF_BOUNDS"
         
         if coord in mine_coords:
             return "MINE"
         
-        adjacent_coords, diagonal_coords = Coord.get_adjacent_coords(coord)
+        adjacent_coords, diagonal_coords = self.get_adjacent_coords(coord)
         nearby_mines = 0
         
         for ac in adjacent_coords:
@@ -171,34 +174,34 @@ class Coord:
 
         return nearby_mines
 
-    def get_adjacent_coords(coord: int):
-        row, index = Coord.get_row_index(coord)
+    def get_adjacent_coords(self, coord: int):
+        row, index = self.get_row_index(coord)
         match index:
             case 0:
-                adjacent_coords = [coord - 8, coord + 1, coord + 8]
-                diagonal_coords = [coord - 8 + 1, coord + 8 + 1]
+                adjacent_coords = [coord - self.row_length, coord + 1, coord + self.row_length]
+                diagonal_coords = [coord - self.row_length + 1, coord + self.row_length + 1]
             case 7:
-                adjacent_coords = [coord - 8, coord - 1, coord + 8]
-                diagonal_coords = [coord - 8 - 1, coord + 8 - 1]
+                adjacent_coords = [coord - self.row_length, coord - 1, coord + self.row_length]
+                diagonal_coords = [coord - self.row_length - 1, coord + self.row_length - 1]
             case other:
-                adjacent_coords = [coord - 8, coord - 1, coord + 1, coord + 8]
-                diagonal_coords = [coord - 8 - 1, coord - 8 + 1, coord + 8 - 1, coord + 8 + 1]
+                adjacent_coords = [coord - self.row_length, coord - 1, coord + 1, coord + self.row_length]
+                diagonal_coords = [coord - self.row_length - 1, coord - self.row_length + 1, coord + self.row_length - 1, coord + self.row_length + 1]
         
         return adjacent_coords, diagonal_coords
         
-    def check(board: Board, found_coords: list):
-        row, index = Coord.get_row_index(found_coords[0])
+    def check(self, board: Board, found_coords: list):
+        row, index = self.get_row_index(found_coords[0])
         
         first_coord_zero: bool = board.board[row][index] == Board.TYPES["ZERO"]
         if not first_coord_zero: return found_coords 
 
         old_found_coords = found_coords.copy()
         for coord in found_coords:
-            adjacent_coords, diagonal_coords = Coord.get_adjacent_coords(coord)
+            adjacent_coords, diagonal_coords = self.get_adjacent_coords(coord)
 
             for ac in adjacent_coords:
-                if ac < 0 or ac > 63: adjacent_coords.remove(ac); continue
-                row, index = Coord.get_row_index(ac)
+                if ac < 0 or ac > self.row_length - 1: adjacent_coords.remove(ac); continue
+                row, index = self.get_row_index(ac)
                 if board.board[row][index] == Board.TYPES["ZERO"] and not ac in found_coords:
                     found_coords.append(ac)
         
@@ -209,22 +212,23 @@ class Coord:
         iterator = found_coords.copy()
         found_coords: set = set(found_coords)
         for coord in iterator:
-            adjacent_coords, diagonal_coords = Coord.get_adjacent_coords(coord)
+            adjacent_coords, diagonal_coords = self.get_adjacent_coords(coord)
             
             for ac in adjacent_coords:
-                if ac < 0 or ac > 63: adjacent_coords.remove(ac); continue
+                if ac < 0 or ac > self.row_length - 1: adjacent_coords.remove(ac); continue
                 found_coords.add(ac)
             
             for dc in diagonal_coords:
-                if dc < 0 or dc > 63: diagonal_coords.remove(dc); continue
+                if dc < 0 or dc > self.row_length - 1: diagonal_coords.remove(dc); continue
                 found_coords.add(dc)
         
         return list(found_coords)
                 
-    def get_row_index(coord: int): return coord // 8, coord % 8
+    def get_row_index(self, coord: int): return coord // self.row_length, coord % self.row_length
     
 def main():
-    print("You have ran the Minesweeper library module. Please run the main python file instead.")
+    print(Coord.COORDS)
+    # print("You have ran the Minesweeper library module. Please run the main python file instead.")
     
 if __name__ == "__main__":
     main()
